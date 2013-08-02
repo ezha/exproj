@@ -182,7 +182,7 @@ plots <- vector("list", length(rLDfY))
 time <- vector("list", length(rLDfY))
 
 proc.time()
-for(l in 23:57){
+for(l in 39:length(rLDfY)){
 
 
   zz = 1
@@ -203,7 +203,7 @@ for(l in 23:57){
     # Create list with samples for K
     for (i in 1:length(K)){
       temp_ <- suppressWarnings(matrix(sample(rLDfY[[l]]$m_o_h), permut, K[i]))
-      rYPerm[[i]] <-  data.frame(apply(temp_,1,sort))
+#       rYPerm[[i]] <-  data.frame(apply(temp_,1,sort))
     #    rYPerm[[i]] <- temp_[!duplicated(temp_),]
     }
     rm(temp_)
@@ -212,11 +212,13 @@ for(l in 23:57){
     rYPermLm <- lapply(rYPerm, function(x) apply(x,2,samlmu))
     
     # Compute parameters to l-moments 
-    rYPermPL <- lapply(rYPermLm, function(x) apply(x,2,pelgev))
+    rYPermPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
+                                                      error=function(e) NULL))
     
     # Compute quantiles
     rYPermLQ <- lapply(rYPermPL, 
-                       function(x) apply(x,2,function(y) quagev(kvant,y)))
+                       function(x) tryCatch(apply(x,2,function(y) quagev(kvant,y)),
+                                                                  error=function(e) NULL))
     
     
     # prepare ribbon for plotting etc.
@@ -226,10 +228,15 @@ for(l in 23:57){
     names(rYPermMin) <- as.character(K)
     
     
+    #error workaround:
+#     rYPermLQ <- rYPermLQ[rYPermPL != "NULL"]
+    
     # get max/min value from all random permuts
     for(i in 1:length(K)){
-        rYPermMax[[i]] <- apply(rYPermLQ[[i]],1,max)
-        rYPermMin[[i]] <- apply(rYPermLQ[[i]],1,min)
+        rYPermMax[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,max),
+                                   error=function(e) NULL)
+        rYPermMin[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,min),
+                                   error=function(e) NULL)
     }
     proc.time()
     
@@ -237,6 +244,7 @@ for(l in 23:57){
     rYPermMinn[[zz]] <- rYPermMin
     
     print(paste(zz,"th's iteration in ", l, "th well"))
+    
     
     zz = zz + 1
     
@@ -262,15 +270,15 @@ for(l in 23:57){
     # get max/min of all iters, by combining all and getting max from every row
     # for every K
     
-    rYPermMa[[j]] <- apply(do.call(cbind,tempa_),1,max)
-    rYPermMi[[j]] <- apply(do.call(cbind,tempi_),1,min)
+    rYPermMa[[j]] <- tryCatch(apply(do.call(cbind,tempa_),1,max), 
+                              error=function(e) NULL)
+    rYPermMi[[j]] <- tryCatch(apply(do.call(cbind,tempi_),1,min), 
+                              error=function(e) NULL)
   }
 
 
-
-
   # Preparing for plotting
-  
+
   observ <- sort(rLDfY[[l]]$m_o_h)
   n <- length(observ)
 
@@ -278,63 +286,72 @@ for(l in 23:57){
   # Data points are plotted at the Gringorten plotting position, 
   # i.e. the i'th smallest of n data points is plotted at the horizontal 
   # position corresponding to nonexceedance probability
+  
   points[[l]] <- data.frame(obs = observ, 
                       kvantil = ((1:n)-0.44)/(n+0.12),
                       redkv = -log(-log(((1:n)-0.44)/(n+0.12))))
-  
-  
-  
-  ribbons[[l]] <- data.frame(kvantil = kvant,
-                     redkv = -log(-log(kvant)),
-                     GEV = quagev(kvant, pelgev(samlmu(rLDfY[[l]]$m_o_h))),
-                     max5 = rYPermMa[[1]], min5 = rYPermMi[[1]],
-                     max10 = rYPermMa[[2]], min10 = rYPermMi[[2]],
-                     max12 = rYPermMa[[3]], min12 = rYPermMi[[3]],
-                     max15 = rYPermMa[[4]], min15 = rYPermMi[[4]],
-                     max20 = rYPermMa[[5]], min20 = rYPermMi[[5]],
-                     max30 = rYPermMa[[6]], min30 = rYPermMi[[6]])
-  
 
   
   
+
+  
+    ribbons[[l]] <- data.frame(kvantil = kvant,
+               redkv = -log(-log(kvant)),
+               GEV = quagev(kvant, pelgev(samlmu(rLDfY[[l]]$m_o_h))),
+               max5 = ifelse(rep(is.null(rYPermMa[[1]]),180),NA,rYPermMa[[1]]), 
+               min5 = ifelse(rep(is.null(rYPermMi[[1]]),180),NA,rYPermMi[[1]]),
+               max10 = ifelse(rep(is.null(rYPermMa[[2]]),180),NA,rYPermMa[[2]]), 
+               min10 = ifelse(rep(is.null(rYPermMi[[2]]),180),NA,rYPermMi[[2]]),
+               max12 = ifelse(rep(is.null(rYPermMa[[3]]),180),NA,rYPermMa[[3]]),
+               min12 = ifelse(rep(is.null(rYPermMi[[3]]),180),NA,rYPermMi[[3]]),
+               max15 = ifelse(rep(is.null(rYPermMa[[4]]),180),NA,rYPermMa[[4]]), 
+               min15 = ifelse(rep(is.null(rYPermMi[[4]]),180),NA,rYPermMi[[4]]),
+               max20 = ifelse(rep(is.null(rYPermMa[[5]]),180),NA,rYPermMa[[5]]), 
+               min20 = ifelse(rep(is.null(rYPermMi[[5]]),180),NA,rYPermMi[[5]]),
+               max30 = ifelse(rep(is.null(rYPermMa[[6]]),180),NA,rYPermMa[[6]]),
+               min30 = ifelse(rep(is.null(rYPermMi[[6]]),180),NA,rYPermMi[[6]]))
+  
+  
+  
+
 #   library(ggplot2)
-  plots[[l]] <- ggplot(ribbons[[l]], aes(x = redkv, y = GEV)) +
-    geom_ribbon(aes(ymin = min5, ymax = max5),
-                alpha = 0.8, fill = "#FDE0DD") +
-    geom_ribbon(aes(ymin = min12, ymax = max12),
-                alpha = 0.8, fill = "#FCC5C0") +
-    geom_ribbon(aes(ymin = min10, ymax = max10),
-                alpha = 0.8, fill = "#FA9FB5") +
-    geom_ribbon(aes(ymin = min15, ymax = max15),
-                alpha = 0.8, fill = "#F768A1") +
-    geom_ribbon(aes(ymin = min20, ymax = max20),
-                alpha = 0.8, fill = "#DD3497") +
-    geom_ribbon(aes(ymin = min30, ymax = max30),
-                alpha = 0.8, fill = "#AE017E") +
+    plots[[l]] <- ggplot(ribbons[[l]], aes(x = redkv, y = GEV)) +
+#                     geom_ribbon(aes(ymin = min5, ymax = max5),
+#                                 alpha = 0.8, fill = "#FDE0DD") +
+                    geom_ribbon(aes(ymin = min10, ymax = max10),
+                                alpha = 0.8, fill = "#FCC5C0") +
+                    geom_ribbon(aes(ymin = min12, ymax = max12),
+                                alpha = 0.8, fill = "#FA9FB5") +
+                    geom_ribbon(aes(ymin = min15, ymax = max15),
+                                alpha = 0.8, fill = "#F768A1") +
+                    geom_ribbon(aes(ymin = min20, ymax = max20),
+                                alpha = 0.8, fill = "#DD3497") +
+                    geom_ribbon(aes(ymin = min30, ymax = max30),
+                                alpha = 0.8, fill = "#AE017E") +
     geom_line(aes(x = redkv, y = GEV), colour = "#7A0177", size = 1.2) +
     geom_point(data = points[[l]], aes(x = redkv, y = obs), colour = "#FFF7F3") +
     scale_x_continuous(breaks = -log(-log(c(.5, .8, .9, .95, .98, .99, .995))),
                         labels = c(2, 5, 10, 20, 50, 100, 200), 
-                       limits=c(-log(-log(.1)),-log(-log(.995)))) +
+                       limits=c(-log(-log(.1)),-log(-log(.9951)))) +
     xlab("återkomsttid") + 
     ylab("återkomstnivå") +
     theme_bw() +
-    scale_fill_manual(values=c("#FCC5C0", "#FA9FB5", "#F768A1","DD3497","AE017E"), 
+    scale_fill_manual(values=c("#FDE0DD","#FCC5C0", "#FA9FB5", "#F768A1","DD3497","AE017E"), 
                       name="Mättid",
-                      breaks=c("ymin10", "ymin12", "ymin15", "ymin20", "ymin30"),
-                      labels=c("10 år", "12 år", "15 år", "20 år", "30 år")) 
+                      breaks=c("ymin5","ymin10", "ymin12", "ymin15", "ymin20", "ymin30"),
+                      labels=c("5 år","10 år", "12 år", "15 år", "20 år", "30 år")) 
  
 
 
   
-if(l != 1){
-proc.time() - time[[1]]
-}
-time[[l]] <- proc.time()
+  if(l != 1){
+    proc.time() - time[[1]]
+  }
+  time[[l]] <- proc.time()
 }
 
 
-}
+
 
 z = 22
 kvRibb <- c(177,179,180)
@@ -371,11 +388,20 @@ for(i in 1:z){
 }
 
 library(plyr)
+library(reshape2)
 dfRibb <- lapply(dfRibb,as.data.frame)
 dfRibb <- rbind.fill(dfRibb)
-dfRibb50me <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,mean)
-dfRibb50ma <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,max)
+# dfRibb50me <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,mean)
+# dfRibb50ma <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,max)
 # dfRibb50mi <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,min)
+
+dfRibbM <- melt(dfRibb, id.var="Återkomsttid")
+dfRibbMin <- dfRibbM[which(dfRibbM$variable %in% c("min5","min10",
+                                      "min12","min15","min20","min30")),]
+ggplot(data=dfRibbMin, aes(x=variable, y=value, fill=Återkomsttid)) +
+  geom_boxplot() +
+  facet_wrap(~Återkomsttid, scales="fixed")
+
 
 # Underestimation of values by year and Return Period
 undersk50 <- data.frame()
