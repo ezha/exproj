@@ -398,9 +398,14 @@ dfRibb <- rbind.fill(dfRibb)
 dfRibbM <- melt(dfRibb, id.var="Återkomsttid")
 dfRibbMin <- dfRibbM[which(dfRibbM$variable %in% c("min5","min10",
                                       "min12","min15","min20","min30")),]
-ggplot(data=dfRibbMin, aes(x=variable, y=value, fill=Återkomsttid)) +
+
+ggplot(data=dfRibbMin, aes(x=variable, y=value, colour=Återkomsttid)) +
   geom_boxplot() +
-  facet_wrap(~Återkomsttid, scales="fixed")
+  facet_wrap(~Återkomsttid, scales="fixed") +
+  scale_colour_manual(breaks = c(50, 100, 200),
+                      labels = c("50 år", "100 år", "200 år"),
+                                 values = c("#000000", "#000000", "#000000"))
+
 
 
 # Underestimation of values by year and Return Period
