@@ -202,7 +202,7 @@ for(l in 39:length(rLDfY)){
     
     # Create list with samples for K
     for (i in 1:length(K)){
-      temp_ <- suppressWarnings(matrix(sample(rLDfY[[l]]$m_o_h), permut, K[i]))
+      rYPerm[[i]] <- suppressWarnings(matrix(sample(rLDfY[[l]]$m_o_h), permut, K[i]))
 #       rYPerm[[i]] <-  data.frame(apply(temp_,1,sort))
     #    rYPerm[[i]] <- temp_[!duplicated(temp_),]
     }
@@ -316,8 +316,8 @@ for(l in 39:length(rLDfY)){
 
 #   library(ggplot2)
     plots[[l]] <- ggplot(ribbons[[l]], aes(x = redkv, y = GEV)) +
-#                     geom_ribbon(aes(ymin = min5, ymax = max5),
-#                                 alpha = 0.8, fill = "#FDE0DD") +
+                    geom_ribbon(aes(ymin = min5, ymax = max5),
+                                alpha = 0.8, fill = "#FDE0DD") +
                     geom_ribbon(aes(ymin = min10, ymax = max10),
                                 alpha = 0.8, fill = "#FCC5C0") +
                     geom_ribbon(aes(ymin = min12, ymax = max12),
