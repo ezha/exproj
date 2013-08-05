@@ -1170,60 +1170,63 @@ detach(rYearly180)
 
 x <- droplevels(x[which(x$Omr_stn %in% names(fitLnorm)),])
 
+
+## NORMAL DIST
+fitNorm <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'norm'),error=function(e) NULL))) 
+# trim list to get rid of empty elements, left in the dataframe
+fitNorm <-fitNorm[fitNorm != "NULL"]
+# bootNorm <- lapply(fitNorm,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## LOGNORMAL DIST
+fitLnorm <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'lnorm'),error=function(e) NULL)))
+# trim list to get rid of empty elements, left in the dataframe
+fitLnorm <-fitLnorm[fitLnorm != "NULL"]
+# bootLnorm <- lapply(fitLnorm,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## LOGISTIC DIST
+fitLogis <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'logis'),error=function(e) NULL))) 
+# trim list to get rid of empty elements, left in the dataframe
+fitLogis <-fitLogis[fitLogis != "NULL"]
+# bootLogis <- lapply(fitLogis,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## GAMMA
+fitGamma <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'gamma'),error=function(e) NULL))) 
+# trim list to get rid of empty elements, left in the dataframe
+fitGamma <-fitGamma[fitGamma != "NULL"]
+# bootGamma <- lapply(fitGamma,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## WEIBULL DIST
+fitWeibull <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'weibull'),error=function(e) NULL))) 
+# trim list to get rid of empty elements, left in the dataframe
+fitWeibull <-fitWeibull[fitWeibull != "NULL"]
+# bootWeibull <- lapply(fitWeibull,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## GUMBEL DIST
+fitGumbel <- with(x, tapply(m_o_h, Omr_stn, function(u) 
+  tryCatch(fitdist(u,'gumbel', start = list(location = 0, scale = 1)),
+           error=function(e) NULL)))
+# trim list to get rid of empty elements, left in the dataframe
+fitGumbel <-fitGumbel[fitGumbel != "NULL"]
+# bootGumbel <- lapply(fitGumbel,function(u) bootdist(u, bootmethod='nonparam',nrit))
+
+
+## GEV DIST
+fitGev <- with(x, tapply(m_o_h, Omr_stn, function(u) tryCatch(gev(u),error=function(e) NULL ))) 
+# trim list to get rid of empty elements, left in the dataframe
+fitGev <-fitGev[fitGev != "NULL"]
 # All distributions with bootstrap CI
 # define number of bootstrap simulations
 # nrit = 1001
-
-  ## NORMAL DIST
-  fitNorm <- with(x, tapply(m_o_h, Omr_stn, function(u) fitdist(u,'norm'))) 
-  # trim list to get rid of empty elements, left in the dataframe
-  fitNorm <-fitNorm[fitNorm != "NULL"]
-  # bootNorm <- lapply(fitNorm,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-
-  
-  ## LOGNORMAL DIST
-  fitLnorm <- with(x, tapply(m_o_h, Omr_stn, function(u) tryCatch(fitdist(u,'lnorm'),error=function(e) NULL)) )
-  # trim list to get rid of empty elements, left in the dataframe
-  fitLnorm <-fitLnorm[fitLnorm != "NULL"]
-  # bootLnorm <- lapply(fitLnorm,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-  
-  ## LOGISTIC DIST
-  fitLogis <- with(x, tapply(m_o_h, Omr_stn, function(u) fitdist(u,'logis'))) 
-  # trim list to get rid of empty elements, left in the dataframe
-  fitLogis <-fitLogis[fitLogis != "NULL"]
-  # bootLogis <- lapply(fitLogis,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-  
-  ## GAMMA/PEARSON3 DIST
-  fitGamma <- with(x, tapply(m_o_h, Omr_stn, function(u) fitdist(u,'gamma'))) 
-  # trim list to get rid of empty elements, left in the dataframe
-  fitGamma <-fitGamma[fitGamma != "NULL"]
-  # bootGamma <- lapply(fitGamma,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-  
-  ## WEIBULL DIST
-  fitWeibull <- with(x, tapply(m_o_h, Omr_stn, function(u) fitdist(u,'weibull'))) 
-  # trim list to get rid of empty elements, left in the dataframe
-  fitWeibull <-fitWeibull[fitWeibull != "NULL"]
-  # bootWeibull <- lapply(fitWeibull,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-  
-  ## GUMBEL DIST
-  fitGumbel <- with(x, tapply(m_o_h, Omr_stn, function(u) fitdist(u,'gumbel', 
-                                                                  start = list(location = 0, scale = 1))))
-  # trim list to get rid of empty elements, left in the dataframe
-  fitGumbel <-fitGumbel[fitGumbel != "NULL"]
-  # bootGumbel <- lapply(fitGumbel,function(u) bootdist(u, bootmethod='nonparam',nrit))
-  
-  # GEV
-  # lply(myData, c("group1", "group2"), function(df){  
-  # tryCatch(nls(depen ~ exp(a1 + b1 * year) , data=df, start = list(a1 = -1, b1 = 0), na.action=na.omit), error=function(e) NULL)
-  
-  fitGev <- with(x, tapply(m_o_h, Omr_stn, function(u) tryCatch(gev(u),error=function(e) NULL ))) 
-  # trim list to get rid of empty elements, left in the dataframe
-  fitGev <-fitGev[fitGev != "NULL"]
 
 
 # 3    Fitting GEV Yearly --------------------------------------------------
