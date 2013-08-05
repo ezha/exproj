@@ -182,7 +182,7 @@ plots <- vector("list", length(rLDfY))
 time <- vector("list", length(rLDfY))
 
 proc.time()
-for(l in 39:length(rLDfY)){
+for(l in 36:length(rLDfY)){
 
 
   zz = 1
@@ -206,10 +206,11 @@ for(l in 39:length(rLDfY)){
 #       rYPerm[[i]] <-  data.frame(apply(temp_,1,sort))
     #    rYPerm[[i]] <- temp_[!duplicated(temp_),]
     }
-    rm(temp_)
+    #rm(temp_)
     
     # Compute L-moments
-    rYPermLm <- lapply(rYPerm, function(x) apply(x,2,samlmu))
+    rYPermLm <- lapply(rYPerm, function(x) tryCatch(apply(x,1,samlmu),
+                                                    error=function(e) NULL))
     
     # Compute parameters to l-moments 
     rYPermPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
@@ -233,7 +234,7 @@ for(l in 39:length(rLDfY)){
     
     # get max/min value from all random permuts
     for(i in 1:length(K)){
-        rYPermMax[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,max),
+        rYPermMax[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,max), 
                                    error=function(e) NULL)
         rYPermMin[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,min),
                                    error=function(e) NULL)
