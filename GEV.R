@@ -20,6 +20,9 @@ r <- split(rawdata,rawdata$Omr_stn)
 rXtsM <- vector("list", length(r))
 names(rXtsM) <- names(r)
 
+rXtsQ <- vector("list", length(r))
+names(rXtsQ) <- names(r)
+
 rXtsY <- vector("list", length(r))
 names(rXtsY) <- names(r)
 
@@ -41,6 +44,7 @@ for(i in 1:length(r)){
 
   # aggregated monthly values  
     rXtsM[[i]] <- apply.monthly(rXts[[i]],max)
+    rXtsQ[[i]] <- apply.quarterly(rXts[[i]],max)
     
       
   # get rid of all measurements shorter than 40 years == 480 months  
@@ -66,6 +70,9 @@ for(i in 1:length(r)){
     
 
 }
+
+# Select same wells for quartarly as for yearly (480 months)
+rXtsQ <- rXtsQ[rXtsY != "NULL"]
 
 # get rid of empty lists
 rXtsY <- rXtsY[rXtsY != "NULL"]
@@ -122,7 +129,7 @@ rYSmallWShift <- join(m, yy, by="Omr_stn", type="inner")
 write.table(rYSmallWShift,file="./data/rYSmallWShift.csv",sep="\t",row.names=F, quote=F)
 
 
-# Reformat xts to data frame --------------------------------------------------
+# Monthly boxplot aggregated months -------------------------------------------
 
 
 rDfM <- vector("list", length(rXtsM))
@@ -154,9 +161,11 @@ ggplot(rDfM[[K]], aes(x=Month, y=m_o_h)) +
   xlab("månad") + ylab("m.ö.h.") 
 
 
+# Reformat xts to data frame --------------------------------------------------
 
 # turn yearly xts to data.frame for further manipulation
 rDfY <- lapply(rXtsY,as.data.frame)
+rDfQ <- lapply(rXtsQ,as.data.frame)
 
 
 # rename and create columns for better access and readability
@@ -164,11 +173,16 @@ for(i in 1:length(rDfY)){
   rDfY[[i]] <- data.frame(m_o_h = rDfY[[i]]$m_o_h, 
                           tid = as.Date(rownames(rDfY[[i]])), 
                           Omr_stn = names(rDfY[i]))
+  rDfQ[[i]] <- data.frame(m_o_h = rDfQ[[i]]$m_o_h, 
+                          tid = as.Date(rownames(rDfQ[[i]])), 
+                          Omr_stn = names(rDfQ[i]))
 }
 
 # Save yearly values longer than 40 years also as list with data.frame
 rLDfY <- rDfY
-# turn list of data frames to data frame
+rLDfQ <- rDfQ
+# turn list of data
+frames to data frame
 rDfY <- rbind.fill(rDfY)
 
 
@@ -182,14 +196,14 @@ plots <- vector("list", length(rLDfY))
 time <- vector("list", length(rLDfY))
 
 proc.time()
-for(l in 36:length(rLDfY)){
+for(l in 84:length(rLDfY)){
 
 
   zz = 1
   iter = 10
   rYPermMaxx <- vector("list", iter)
   rYPermMinn <- vector("list", iter)
-  
+
   while(zz <= iter){
 
   

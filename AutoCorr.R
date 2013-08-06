@@ -19,8 +19,8 @@ acYdF$lag <- factor(do.call(rbind,acYdF2))
 
 ggplot(acYdF, aes(x=lag, y=V1)) +
   geom_boxplot() +
-  geom_hline(yintercept=0.2, linetype=2)+
-  geom_hline(yintercept=-0.2, linetype=2) +
+  geom_hline(yintercept=0.2, linetype=2, colour = "#7A0177") +
+  geom_hline(yintercept=-0.2, linetype=2, colour = "#7A0177") +
   ylab("autocorrelation")
 
 # monthly autocorr -----------------------------------------------------------
@@ -40,6 +40,26 @@ acQdF$lag <- factor(do.call(rbind,acQdF2))
 
 ggplot(acQdF, aes(x=lag, y=V1)) +
   geom_boxplot() +
-  geom_hline(yintercept=0.2, linetype=2) +
-  geom_hline(yintercept=-0.2, linetype=2) +
+  geom_hline(yintercept=0.2, linetype=2, colour = "#7A0177") +
+  geom_hline(yintercept=-0.2, linetype=2, colour = "#7A0177") +
   ylab("autocorrelation")
+
+
+# turning point statistics ----------------------------------------------------
+
+turning.point.test <- function(ts)
+{
+  n <- length(ts)
+  mu <- 2*(n-2)/3
+  var <- (16*n-29)/90
+  x <- embed(ts,3)
+  test.sum <- sum((x[,2] > x[,1] & x[,2] > x[,3]) | (x[,2] < x[,1] & x[,2] < x[,3]))
+  test <- abs(test.sum-mu)/sqrt(var)
+  p.value <- 2*(1-pnorm(test))
+  structure(list(test.sum=test.sum,test=test,p.value=p.value,mu=mu,var=var))
+}
+
+tpY <- vector("list",length(rLDfY))
+for(j in 1:143) tpY[[j]] <- as.numeric(rLDfY[[j]]$m_o_h)
+tpYa <- lapply(tpY,turning.point.test)
+qplot(sapply(tpYa, "[[", "p.value"))
