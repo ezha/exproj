@@ -212,12 +212,11 @@ for(l in 36:length(rLDfY)){
     rYPermLm <- lapply(rYPerm, function(x) tryCatch(apply(x,1,samlmu),
                                                     error=function(e) NULL))
     
-    # Compute parameters to l-moments 
-    rYPermPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
+    # Compute GEVparameters to l-moments 
+    rYPermGEVPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
                                                       error=function(e) NULL))
-    
-    # Compute quantiles
-    rYPermLQ <- lapply(rYPermPL, 
+    # Compute GEVquantiles
+    rYPermGEVLQ <- lapply(rYPermGEVPL, 
                        function(x) tryCatch(apply(x,2,function(y) quagev(kvant,y)),
                                                                   error=function(e) NULL))
     
@@ -234,9 +233,9 @@ for(l in 36:length(rLDfY)){
     
     # get max/min value from all random permuts
     for(i in 1:length(K)){
-        rYPermMax[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,max), 
+        rYPermMax[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,max), 
                                    error=function(e) NULL)
-        rYPermMin[[i]] <- tryCatch(apply(rYPermLQ[[i]],1,min),
+        rYPermMin[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,min),
                                    error=function(e) NULL)
     }
     proc.time()
@@ -299,6 +298,7 @@ for(l in 36:length(rLDfY)){
     ribbons[[l]] <- data.frame(kvantil = kvant,
                redkv = -log(-log(kvant)),
                GEV = quagev(kvant, pelgev(samlmu(rLDfY[[l]]$m_o_h))),
+               LP3 = exp(quape3(kvant, pelpe3(samlmu(log(rLDfY[[l]]$m_o_h))))),
                max5 = ifelse(rep(is.null(rYPermMa[[1]]),180),NA,rYPermMa[[1]]), 
                min5 = ifelse(rep(is.null(rYPermMi[[1]]),180),NA,rYPermMi[[1]]),
                max10 = ifelse(rep(is.null(rYPermMa[[2]]),180),NA,rYPermMa[[2]]), 
@@ -330,6 +330,7 @@ for(l in 36:length(rLDfY)){
                     geom_ribbon(aes(ymin = min30, ymax = max30),
                                 alpha = 0.8, fill = "#AE017E") +
     geom_line(aes(x = redkv, y = GEV), colour = "#7A0177", size = 1.2) +
+    geom_line(aes(x = redkv, y = LP3), colour = "#000000", size = 1.2) +
     geom_point(data = points[[l]], aes(x = redkv, y = obs), colour = "#FFF7F3") +
     scale_x_continuous(breaks = -log(-log(c(.5, .8, .9, .95, .98, .99, .995))),
                         labels = c(2, 5, 10, 20, 50, 100, 200), 
@@ -425,6 +426,7 @@ sub_dfRibbMin <- dfRibbMin[which(!dfRibbMin$rör %in% c("19_3","24_1","37_34","3
 ggplot(data=sub_dfRibbMin, aes(x=variable, y=value, colour=Återkomsttid)) +
   geom_boxplot() +
   facet_wrap(~Återkomsttid, scales="fixed") +
+  xlab("mättid") + ylab("underskattning [m]") +
   scale_colour_manual(breaks = c(50, 100, 200),
                       labels = c("50 år", "100 år", "200 år"),
                                  values = c("#000000", "#000000", "#000000"))
