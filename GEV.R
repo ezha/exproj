@@ -354,7 +354,7 @@ for(l in 36:length(rLDfY)){
 
 
 
-z = 22
+z = 84
 kvRibb <- c(177,179,180)
 dfRibb_ <- vector("list",3)
 dfRibb <- vector("list",z)
@@ -392,22 +392,45 @@ library(plyr)
 library(reshape2)
 dfRibb <- lapply(dfRibb,as.data.frame)
 dfRibb <- rbind.fill(dfRibb)
-# dfRibb50me <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,mean)
-# dfRibb50ma <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,max)
-# dfRibb50mi <- apply(dfRibb[(seq(1,to=nrow(dfRibb),3)),],2,min)
 
+# melt dataframe to get into decent format for plotting
 dfRibbM <- melt(dfRibb, id.var="Återkomsttid")
+
+# subset to get only underestimation of values
 dfRibbMin <- dfRibbM[which(dfRibbM$variable %in% c("min5","min10",
                                       "min12","min15","min20","min30")),]
+dfRibbMin$Återkomsttid <- factor(dfRibbMin$Återkomsttid)
 
-ggplot(data=dfRibbMin, aes(x=variable, y=value, colour=Återkomsttid)) +
+# attach name of well
+dfRibbMin$rör <- factor(rep(names(rLDfY[1:z]),each=3))
+
+
+# remap the measurement length
+dfRibbMin$variable <- revalue(dfRibbMin$variable, c("min5"="5 år",
+                                                    "min10"="10 år",
+                                                    "min12"="12 år",
+                                                    "min15"="15 år",
+                                                    "min20"="20 år",
+                                                    "min30"="30 år"))
+
+
+# remove outliers
+sub_dfRibbMin <- dfRibbMin[which(!dfRibbMin$rör %in% c("19_3","24_1","37_34","39_1",
+                                                       "1_7","1_8","14_6","17_1",
+                                                       "19_5","3_4","33_4")),]
+
+
+
+# BOXPLOT of possible underestimation
+ggplot(data=sub_dfRibbMin, aes(x=variable, y=value, colour=Återkomsttid)) +
   geom_boxplot() +
   facet_wrap(~Återkomsttid, scales="fixed") +
   scale_colour_manual(breaks = c(50, 100, 200),
                       labels = c("50 år", "100 år", "200 år"),
                                  values = c("#000000", "#000000", "#000000"))
+ 
 
-
+dfRibbMin[which(dfRibbMin$value >1.5 & dfRibbMin$variable=="5 år"),]
 
 # Underestimation of values by year and Return Period
 undersk50 <- data.frame()
