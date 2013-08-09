@@ -12,15 +12,19 @@ ksGEV <- vector("list",length(rLDfY))
 
 parNor <- vector("list",length(rLDfY))
 adNor <- vector("list",length(rLDfY))
+ksNor <- vector("list",length(rLDfY))
 
 parWei <- vector("list",length(rLDfY))
 adWei <- vector("list",length(rLDfY))
+ksWei <- vector("list",length(rLDfY))
 
 parEV1 <- vector("list",length(rLDfY))
 adEV1 <- vector("list",length(rLDfY))
+ksEV1 <- vector("list",length(rLDfY))
 
 parLP3 <- vector("list",length(rLDfY))
 adLP3 <- vector("list",length(rLDfY))
+ksLP3 <- vector("list",length(rLDfY))
 
 
 for(l in 1:length(rLDfY)){
@@ -30,7 +34,7 @@ for(l in 1:length(rLDfY)){
                           error=function(e) e,finally = c(0, 1, 1))
   parEV1[[l]] <- tryCatch(pelgum(samlmu(rLDfY[[l]]$m_o_h)), 
                           error=function(e) e,finally = c(0, 1, 1))
-  par[[l]] <- tryCatch(pelgum(samlmu(rLDfY[[l]]$m_o_h)), 
+  parLP3[[l]] <- tryCatch(pelpe3(samlmu(log(rLDfY[[l]]$m_o_h))), 
                           error=function(e) e,finally = c(0, 1, 1))
 }
 
@@ -53,53 +57,130 @@ delta <- tryCatch(sapply(parWei, "[[", "delta"), error=function(e) NULL)
 xi <- tryCatch(sapply(parEV1, "[[", "xi"), error=function(e) NULL)
 alpha <- tryCatch(sapply(parEV1, "[[", "alpha"), error=function(e) NULL)
 
+# LP3 parameters --------------------------------------------------------------
+mu <- tryCatch(sapply(parLP3, "[[", "mu"), error=function(e) NULL)
+sigma <- tryCatch(sapply(parLP3, "[[", "sigma"), error=function(e) NULL)
+gamma <- tryCatch(sapply(parLP3, "[[", "gamma"), error=function(e) NULL)
+
 
 # GOF tests -------------------------------------------------------------------
 for(l in 1:length(rLDfY)){
-  adGEV[[l]] <- ad.test(rLDfY[[l]]$m_o_h,cdfgev, c(location[l], 
-                                                   scale[l], shape[l]))
-  #ksGEV[[l]] <- ks.test(rLDfY[[l]]$m_o_h,cdfgev, c(location[l], 
-  #scale[l], shape[l]))
-  adNor[[l]] <- ad.test(rLDfY[[l]]$m_o_h,cdfnor, c(mean[l], sd[l]))
+  adGEV[[l]] <- ad.test(rLDfY[[l]]$m_o_h, cdfgev, 
+                        c(location[l], scale[l], shape[l]))
+  ksGEV[[l]] <- ks.test(x=rLDfY[[l]]$m_o_h, y=cdfgev, 
+                        c(location[l], scale[l], shape[l]))
+  
+  
+  adNor[[l]] <- ad.test(rLDfY[[l]]$m_o_h, cdfnor, c(mean[l], sd[l]))
+  ksNor[[l]] <- ks.test(x=rLDfY[[l]]$m_o_h, y=cdfnor, c(mean[l], sd[l]))
+  
+  
   adWei[[l]] <- tryCatch(ad.test(rLDfY[[l]]$m_o_h, cdfwei, 
                                  c(zeta[[l]], beta[[l]], delta[[l]])),
                                 error=function(e) e=1)
+  ksWei[[l]] <- tryCatch(ks.test(x=rLDfY[[l]]$m_o_h, y=cdfwei, 
+                                 c(zeta[[l]], beta[[l]], delta[[l]])),
+                         error=function(e) e=1)
+  
+  
   adEV1[[l]] <- tryCatch(ad.test(rLDfY[[l]]$m_o_h, cdfgum, 
                                c(xi[[l]], alpha[[l]])),
                        error=function(e) e=1)
+  ksEV1[[l]] <- tryCatch(ad.test(rLDfY[[l]]$m_o_h, cdfgum, 
+                                 c(xi[[l]], alpha[[l]])),
+                         error=function(e) e=1)
+  
+  
+  adLP3[[l]] <- tryCatch(ad.test(log(rLDfY[[l]]$m_o_h), cdfpe3, 
+                                 c(mu[[l]], sigma[[l]], gamma[[l]])),
+                         error=function(e) e=1)
+  ksLP3[[l]] <- tryCatch(ks.test(x = log(rLDfY[[l]]$m_o_h), y = cdfpe3, 
+                                 c(mu[[l]], sigma[[l]], gamma[[l]])),
+                         error=function(e) e=1)
 }
 
+# prepare GOF results for data frame GEV --------------------------------------
 
-ADGEV <- data.frame(AD= sapply(adGEV, "[[", "statistic"), FIT = "GEV")
+# Anderson Darling
+ADGEV <- data.frame(AD = sapply(adGEV, "[[", "statistic"), FIT = "GEV")
 ADGEV$rör <- names(rLDfY)
 
-ADNor <- data.frame(AD= sapply(adNor, "[[", "statistic"), FIT = "Normal")
+# Kolmogorov
+KSGEV <- data.frame(KS = sapply(ksGEV, "[[", "statistic"), FIT = "GEV")
+KSGEV$rör <- names(rLDfY)
+
+
+# prepare GOF results for data frame Normal -----------------------------------
+
+# Anderson Darling
+ADNor <- data.frame(AD = sapply(adNor, "[[", "statistic"), FIT = "Normal")
 ADNor$rör <- names(rLDfY)
 
+# Kolmogorov
+KSNor <- data.frame(KS = sapply(ksNor, "[[", "statistic"), FIT = "Normal")
+KSNor$rör <- names(rLDfY)
+
+
+# prepare GOF results for data frame Weibull ----------------------------------
+
+# Anderson Darling
 names(adWei) <- names(rLDfY)
 adWei <- adWei[adWei != "1"]
-ADWei <- data.frame(AD= sapply(adWei, "[[", "statistic"),FIT = "Weibull")
-# TODO improve here
+ADWei <- data.frame(AD = sapply(adWei, "[[", "statistic"),FIT = "Weibull")
 ADWei$rör <- names(adWei)
 
+# Kolmogorov
+names(ksWei) <- names(rLDfY)
+ksWei <- ksWei[ksWei != "1"]
+KSWei <- data.frame(KS = sapply(ksWei, "[[", "statistic"),FIT = "Weibull")
+KSWei$rör <- names(ksWei)
+
+
+# prepare GOF results for data frame EV1 --------------------------------------
+
+# Anderson Darling
 names(adEV1) <- names(rLDfY)
 adEV1 <- adEV1[adEV1 != "1"]
-ADEV1 <- data.frame(AD= sapply(adEV1, "[[", "statistic"),FIT = "EV1")
-# TODO improve here
+ADEV1 <- data.frame(AD = sapply(adEV1, "[[", "statistic"),FIT = "EV1")
 ADEV1$rör <- names(adEV1)
 
+# Kolmogorov
+names(ksEV1) <- names(rLDfY)
+ksEV1 <- ksEV1[ksEV1 != "1"]
+KSEV1 <- data.frame(KS = sapply(ksEV1, "[[", "statistic"),FIT = "EV1")
+KSEV1$rör <- names(ksEV1)
 
-ADGEVok <- ADGEV[which(ADGEV$AD <=2.492),]
-ADNorok <- ADNor[which(ADNor$AD <=2.492),]
+
+# prepare GOF results for data frame LP3 --------------------------------------
+
+# Anderson Darling
+names(adLP3) <- names(rLDfY)
+adLP3 <- adLP3[adLP3 != "1"]
+ADLP3 <- data.frame(AD = sapply(adLP3, "[[", "statistic"),FIT = "LP3")
+ADLP3$rör <- names(adLP3)
+
+# Kolmogorov
+names(ksLP3) <- names(rLDfY)
+ksLP3 <- ksLP3[ksLP3 != "1"]
+KSLP3 <- data.frame(KS = sapply(ksLP3, "[[", "statistic"),FIT = "LP3")
+KSLP3$rör <- names(ksLP3)
+
+
+# Data frame with all GOF results --> plotting --------------------------------
+ADGEVok <- ADGEV[which(ADGEV$AD >=2.492),]
+ADNorok <- ADNor[which(ADNor$AD >=2.492),]
 ADWeiok <- ADWei[which(ADWei$AD <=2.492),]
 ADEV1ok <- ADEV1[which(ADEV1$AD <=2.492),]
+ADLP3ok <- ADLP3[which(ADLP3$AD <=2.492),]
 
-ADFits = rbind.fill(ADNorok, ADGEVok, ADWeiok, ADEV1ok)
+ADFits = rbind.fill(ADNorok, ADGEVok, ADWeiok, ADEV1ok, ADLP3ok)
 
 ggplot(ADFits, aes(FIT,AD)) +
   geom_boxplot() +
 #   geom_jitter(position = position_jitter(width = .1), size=0.1) +
-  ylab(expression(A^2))
+  ylab(expression(A^2)) +
+  geom_text(stat="bin", color="black", vjust=1,
+            aes(y=2.5, label=..count..))
 
 
 # plot to look at cdf vs ecdf -------------------------------------------------
@@ -110,5 +191,6 @@ ggg <- data.frame(CDF=sort(cdfgev(rLDfY[[l]]$m_o_h, c(location[l],
 
 ggplot(data=ggg, aes(x=val, y=CDF)) +
   geom_step(aes(colour= 'fitted')) +
-  stat_ecdf(aes(x=ecdf, colour = 'Empirical'), geom = "step")
+  stat_ecdf(aes(x=ecdf, colour = 'Empirical'), geom = "step") +
+  
 

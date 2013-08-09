@@ -369,7 +369,7 @@ for(l in 84:length(rLDfY)){
 
 
 
-z = 84
+z = l
 kvRibb <- c(177,179,180)
 dfRibb_ <- vector("list",3)
 dfRibb <- vector("list",z)
