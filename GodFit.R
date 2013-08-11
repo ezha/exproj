@@ -1,6 +1,6 @@
 # GOF testing
 
-lmrd(samlmu(rLDfY[[9]]$m_o_h), distributions="GEV ALL.LB PE3", xaxs="i", yaxs="i", las=1)
+lmrd(samlmu(rLDfY[[9]]$norm), distributions="GEV ALL.LB PE3", xaxs="i", yaxs="i", las=1)
 library("ADGofTest")
 library(MASS)
 library(lmom)
@@ -109,7 +109,7 @@ for(l in 1:length(rLDfY)){
 }
 
 
-# prepare GOF results for data frame Normal -----------------------------------
+# prepare GOF results for data frame normal -----------------------------------
 
 # Anderson Darling
 ADNor <- data.frame(AD = sapply(adNor, "[[", "statistic"), FIT = "Normal")

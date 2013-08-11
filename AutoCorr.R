@@ -4,24 +4,49 @@ library(ggplot2)
 
 # yearly autocorr -------------------------------------------------------------
 
-acY <- vector("list",length(rLDfY))
-for(j in 1:143) acY[[j]] <- acf(rLDfY[[j]]$m_o_h, plot=F)
-acYn1 <- sapply(acY, "[[", "acf")
-acYn2 <- sapply(acY, "[[", "lag")
-acYdF1 <- lapply(acYn1,as.data.frame)
-acYdF2 <- lapply(acYn2,as.matrix)
+acYabs <- vector("list",length(rLDfY))
+acYnorm <- vector("list",length(rLDfY))
 
-acYdFl <- ldply(acYn,length)
-for(j in 1:143) acYdF1[[j]]$rör <- rep(names(rLDfY[j]),acYdFl[j,])
+rLDfY <- lapply(rLDfY, function(x) 
+                        ddply(x, .(Omr_stn),mutate, 
+                        norm = (m_o_h - mean(m_o_h))/sd(m_o_h)))
+for(j in 1:143){ 
+  acYabs[[j]] <- acf(rLDfY[[j]]$m_o_h, plot=F)
+  acYnorm[[j]] <- acf(rLDfY[[j]]$norm, plot=F)
+}
 
-acYdF <- rbind.fill(acYdF1)
-acYdF$lag <- factor(do.call(rbind,acYdF2))
 
-ggplot(acYdF, aes(x=lag, y=V1)) +
+acYnabs <- sapply(acYabs, "[[", "acf")
+acYnnor <- sapply(acYnorm, "[[", "acf")
+acYnlag <- sapply(acYabs, "[[", "lag")
+
+acYdFabs <- lapply(acYnabs,as.data.frame)
+acYdFnor <- lapply(acYnnor,as.data.frame)
+acYdFlag <- lapply(acYnlag,as.matrix)
+
+acYdFl <- ldply(acYnabs,length)
+for(j in 1:143) {
+  acYdFabs[[j]]$rör <- rep(names(rLDfY[j]),acYdFl[j,])
+  acYdFnor[[j]]$rör <- rep(names(rLDfY[j]),acYdFl[j,])
+}
+
+acYdFabs <- rbind.fill(acYdFabs)
+acYdFabs$lag <- factor(do.call(rbind,acYdFlag))
+acYdFnor <- rbind.fill(acYdFnor)
+acYdFnor$lag <- factor(do.call(rbind,acYdFlag))
+
+ggplot(acYdFabs, aes(x=lag, y=V1)) +
   geom_boxplot() +
   geom_hline(yintercept=0.2, linetype=2, colour = "#7A0177") +
   geom_hline(yintercept=-0.2, linetype=2, colour = "#7A0177") +
-  ylab("autocorrelation")
+  ylab("ACF absoluta värden")
+
+ggplot(acYdFnor, aes(x=lag, y=V1)) +
+  geom_boxplot() +
+  geom_hline(yintercept=0.2, linetype=2, colour = "#7A0177") +
+  geom_hline(yintercept=-0.2, linetype=2, colour = "#7A0177") +
+  ylab("ACF")
+
 
 # monthly autocorr -----------------------------------------------------------
 
@@ -62,4 +87,8 @@ turning.point.test <- function(ts)
 tpY <- vector("list",length(rLDfY))
 for(j in 1:143) tpY[[j]] <- as.numeric(rLDfY[[j]]$m_o_h)
 tpYa <- lapply(tpY,turning.point.test)
-qplot(sapply(tpYa, "[[", "p.value"))
+ggplot2::qplot(sapply(tpYa, "[[", "p.value"))
+
+# TODO EXTREMOGRAMM!!!
+
+# TODO 
