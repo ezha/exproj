@@ -449,9 +449,12 @@ ggplot(data=sub_dfRibbMin, aes(x=variable, y=value, colour=Återkomsttid)) +
 
 dfRibbMin[which(dfRibbMin$value >1.5 & dfRibbMin$variable=="5 år"),]
 
-# Underestimation of values by year and Return Period
-undersk50 <- data.frame()
 
 
-# alle rowbinden, dann jedes dritte meanen bzw
-lapply(dfRibb, function(x) apply(x, 2, ))
+# decluster årsmax
+library(POT)
+
+# highly correlated 1_8, 13_5, 14_3, 16_42, 17_1, 17_2, 17_6, 17_7, 17_8, 17_9
+# 19_11, 19_13, 19_5
+
+plot(Df40Y[[1]]$m_o_h)

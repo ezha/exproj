@@ -114,7 +114,7 @@ names(r.xts) <- names(r)
 
 # Preallocate list for the new monthly aggregated xts
 r.xts.m <- vector("list", length(r))
-r.df.m <- vector("list", length(r))
+rDfM <- vector("list", length(r))
 
 # Preallocate list for the new monthly aggregated regular ts
 r.ts.m <- vector("list", length(r))
@@ -131,14 +131,15 @@ for(i in 1:length(r)){
   r.xts.m[[i]] <- apply.monthly(r.xts[[i]],max)
   
   # transform to data.frame that can be used for further analysis and plotting
-  r.df.m[[i]] <- data.frame(tid = index(r.xts.m[[i]]), 
-                            m_o_h = r.xts.m[[i]]$m_o_h, roer = names(r[i]))
+  rDfM[[i]] <- data.frame(tid = index(r.xts.m[[i]]), 
+                            m_o_h = r.xts.m[[i]]$m_o_h, 
+                            Omr_stn = names(r[i]))
   
   # transform to regular ts, currently not working
   r.ts.m[[i]] <- ts(r.xts.m[[i]]$m_o_h,
                     start = start(r.xts.m[[i]]), 
                     end=end(r.xts.m[[i]]),frequency=12)
-  }
+}
 
 
 # rowbind data to get into dataframe
