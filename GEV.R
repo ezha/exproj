@@ -185,6 +185,7 @@ rLDfQ <- rDfQ
 frames to data frame
 rDfY <- rbind.fill(rDfY)
 
+rLDfY <- lapply(rLDfY, function(x) ddply(x, .(Omr_stn), mutate, norm = (m_o_h-mean(m_o_h))/sd(m_o_h)))
 
 # Compute 40 year return level ------------------------------------------------
 library(lmom)
@@ -192,17 +193,22 @@ library(ggplot2)
 
 points <- vector("list", length(dfRibb))
 ribbons <- vector("list", length(rLDfY))
+pointsN <- vector("list", length(dfRibb))
+ribbonsN <- vector("list", length(rLDfY))
 plots <- vector("list", length(rLDfY))
 time <- vector("list", length(rLDfY))
 
 proc.time()
-for(l in 84:length(rLDfY)){
-
+for(l in 1:length(rLDfY)){
+  #
 
   zz = 1
-  iter = 10
+  iter = 20
   rYPermMaxx <- vector("list", iter)
   rYPermMinn <- vector("list", iter)
+  rYPermMaxxN <- vector("list", iter)
+  rYPermMinnN <- vector("list", iter)
+  GEVshape_ <- vector("list", iter)
 
   while(zz <= iter){
 
@@ -216,7 +222,7 @@ for(l in 84:length(rLDfY)){
     
     # Create list with samples for K
     for (i in 1:length(K)){
-      rYPerm[[i]] <- suppressWarnings(matrix(sample(rLDfY[[l]]$m_o_h), permut, K[i]))
+      rYPerm[[i]] <- suppressWarnings(matrix(sample(rLDfY[[l]]$norm), permut, K[i]))
 #       rYPerm[[i]] <-  data.frame(apply(temp_,1,sort))
     #    rYPerm[[i]] <- temp_[!duplicated(temp_),]
     }
@@ -226,36 +232,75 @@ for(l in 84:length(rLDfY)){
     rYPermLm <- lapply(rYPerm, function(x) tryCatch(apply(x,1,samlmu),
                                                     error=function(e) NULL))
     
-    # Compute GEVparameters to l-moments 
-    rYPermGEVPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
-                                                      error=function(e) NULL))
-    # Compute GEVquantiles
-    rYPermGEVLQ <- lapply(rYPermGEVPL, 
-                       function(x) tryCatch(apply(x,2,function(y) quagev(kvant,y)),
-                                                                  error=function(e) NULL))
+    # Compute parameters to l-moments 
+      # GEV
+      rYPermGEVPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelgev),
+                                                        error=function(e) NULL))
+      
+      # normal
+      rYPermNorPL <- lapply(rYPermLm, function(x) tryCatch(apply(x,2,pelnor),
+                                                           error=function(e) NULL))
+      
+      # LP3
+#       rYPermPE3PL <- lapply(rYPermLm, function(x) tryCatch(apply(log(x),2,pelpe3),
+#                                                            error=function(e) NULL))
     
+    # Compute quantiles
+      # GEV
+      rYPermGEVLQ <- lapply(rYPermGEVPL, 
+                         function(x) tryCatch(apply(x,2,function(y) quagev(kvant,y)),
+                                                                    error=function(e) NULL))
     
-    # prepare ribbon for plotting etc.
+      # normal
+      rYPermNorLQ <- lapply(rYPermNorPL, 
+                            function(x) tryCatch(apply(x,2,function(y) quanor(kvant,y)),
+                                                 error=function(e) NULL))
+      
+      # LP3
+#       rYPermPE3LQ <- lapply(rYPermPE3PL, 
+#                             function(x) tryCatch(apply(x,2,function(y) quape3(kvant,y)),
+#                                                  error=function(e) NULL))
+    
+    # prepare gev ribbon for plotting etc.
     rYPermMax <- vector("list", length(K))
     names(rYPermMax) <- as.character(K)
     rYPermMin <- vector("list", length(K))
     names(rYPermMin) <- as.character(K)
     
+
+    # prepare norm ribbon for plotting etc.
+    rYPermMaxN <- vector("list", length(K))
+    names(rYPermMaxN) <- as.character(K)
+    rYPermMinN <- vector("list", length(K))
+    names(rYPermMinN) <- as.character(K)
     
-    #error workaround:
-#     rYPermLQ <- rYPermLQ[rYPermPL != "NULL"]
+    
     
     # get max/min value from all random permuts
     for(i in 1:length(K)){
-        rYPermMax[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,max), 
+      # GEV
+      rYPermMax[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,max), 
                                    error=function(e) NULL)
-        rYPermMin[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,min),
+      rYPermMin[[i]] <- tryCatch(apply(rYPermGEVLQ[[i]],1,min),
                                    error=function(e) NULL)
+      # Normal
+      rYPermMaxN[[i]] <- tryCatch(apply(rYPermNorLQ[[i]],1,max), 
+                                 error=function(e) NULL)
+      rYPermMinN[[i]] <- tryCatch(apply(rYPermNorLQ[[i]],1,min),
+                                 error=function(e) NULL)
     }
     proc.time()
     
+    # Save all of iteration
+    # GEV
     rYPermMaxx[[zz]] <- rYPermMax
     rYPermMinn[[zz]] <- rYPermMin
+    # Normal
+    rYPermMaxxN[[zz]] <- rYPermMaxN
+    rYPermMinnN[[zz]] <- rYPermMinN
+    
+    # Save GEV shape
+    GEVshape_[[zz]] <- lapply(rYPermGEVPL, `[`, i =3, j = )
     
     print(paste(zz,"th's iteration in ", l, "th well"))
     
@@ -264,7 +309,7 @@ for(l in 84:length(rLDfY)){
     
   }
 
-  # get max and min from rYPermMaxx etc.
+  # get max and min from GEV rYPermMaxx etc.
   tempa_ <- vector("list", length(iter))
   tempi_ <- vector("list", length(iter))
   
@@ -273,102 +318,143 @@ for(l in 84:length(rLDfY)){
   rYPermMi <- vector("list", length(K))
   names(rYPermMi) <- names(rYPerm)
   
+  
+  # get max and min from Norm rYPermMaxx etc.
+  tempaN_ <- vector("list", length(iter))
+  tempiN_ <- vector("list", length(iter))
+  
+  rYPermMaN <- vector("list", length(K))
+  names(rYPermMaN) <- names(rYPerm)
+  rYPermMiN <- vector("list", length(K))
+  names(rYPermMiN) <- names(rYPerm)
+  
     
   for(j in 1:length(K)){
     for(i in 1:iter){
       # save all max/min of all iters and one measuring length in one list
+      # GEV
       tempa_[[i]] <- as.data.frame(rYPermMaxx[[i]][j])
       tempi_[[i]] <- as.data.frame(rYPermMinn[[i]][j])
+      
+      # Normal
+      tempaN_[[i]] <- as.data.frame(rYPermMaxxN[[i]][j])
+      tempiN_[[i]] <- as.data.frame(rYPermMinnN[[i]][j])
       }
     
     # get max/min of all iters, by combining all and getting max from every row
     # for every K
-    
+    # GEV
     rYPermMa[[j]] <- tryCatch(apply(do.call(cbind,tempa_),1,max), 
                               error=function(e) NULL)
     rYPermMi[[j]] <- tryCatch(apply(do.call(cbind,tempi_),1,min), 
                               error=function(e) NULL)
+    # normal
+    rYPermMaN[[j]] <- tryCatch(apply(do.call(cbind,tempaN_),1,max), 
+                              error=function(e) NULL)
+    rYPermMiN[[j]] <- tryCatch(apply(do.call(cbind,tempiN_),1,min), 
+                              error=function(e) NULL)
   }
 
+  # Save shape paramater
+  GEVshape <- vector("list", l)
+  GEVshape[[l]] <- do.call(rbind,(lapply(GEVshape_, as.data.frame)))
 
   # Preparing for plotting
 
-  observ <- sort(rLDfY[[l]]$m_o_h)
+  observ <- sort(rLDfY[[l]]$norm)
   n <- length(observ)
 
   
   # Data points are plotted at the Gringorten plotting position, 
   # i.e. the i'th smallest of n data points is plotted at the horizontal 
   # position corresponding to nonexceedance probability
-  
+  # GEV
   points[[l]] <- data.frame(obs = observ, 
                       kvantil = ((1:n)-0.44)/(n+0.12),
                       redkv = -log(-log(((1:n)-0.44)/(n+0.12))))
-
+  
+  ribbons[[l]] <- data.frame(kvantil = kvant,
+             redkv = -log(-log(kvant)),
+             GEV = quagev(kvant, pelgev(samlmu(rLDfY[[l]]$norm))),
+#                LP3 = exp(quape3(kvant, pelpe3(samlmu(log(rLDfY[[l]]$m_o_h))))),
+             max5 = ifelse(rep(is.null(rYPermMa[[1]]),180),NA,rYPermMa[[1]]), 
+             min5 = ifelse(rep(is.null(rYPermMi[[1]]),180),NA,rYPermMi[[1]]),
+             max10 = ifelse(rep(is.null(rYPermMa[[2]]),180),NA,rYPermMa[[2]]), 
+             min10 = ifelse(rep(is.null(rYPermMi[[2]]),180),NA,rYPermMi[[2]]),
+             max12 = ifelse(rep(is.null(rYPermMa[[3]]),180),NA,rYPermMa[[3]]),
+             min12 = ifelse(rep(is.null(rYPermMi[[3]]),180),NA,rYPermMi[[3]]),
+             max15 = ifelse(rep(is.null(rYPermMa[[4]]),180),NA,rYPermMa[[4]]), 
+             min15 = ifelse(rep(is.null(rYPermMi[[4]]),180),NA,rYPermMi[[4]]),
+             max20 = ifelse(rep(is.null(rYPermMa[[5]]),180),NA,rYPermMa[[5]]), 
+             min20 = ifelse(rep(is.null(rYPermMi[[5]]),180),NA,rYPermMi[[5]]),
+             max30 = ifelse(rep(is.null(rYPermMa[[6]]),180),NA,rYPermMa[[6]]),
+             min30 = ifelse(rep(is.null(rYPermMi[[6]]),180),NA,rYPermMi[[6]]))
   
   
-
+  # Normal
+  pointsN[[l]] <- data.frame(obs = observ, 
+                            kvantil = ((1:n)-0.44)/(n+0.12),
+                            redkv = -log(-log(((1:n)-0.44)/(n+0.12))))
   
-    ribbons[[l]] <- data.frame(kvantil = kvant,
+  ribbonsN[[l]] <- data.frame(kvantil = kvant,
                redkv = -log(-log(kvant)),
-               GEV = quagev(kvant, pelgev(samlmu(rLDfY[[l]]$m_o_h))),
-               LP3 = exp(quape3(kvant, pelpe3(samlmu(log(rLDfY[[l]]$m_o_h))))),
-               max5 = ifelse(rep(is.null(rYPermMa[[1]]),180),NA,rYPermMa[[1]]), 
-               min5 = ifelse(rep(is.null(rYPermMi[[1]]),180),NA,rYPermMi[[1]]),
-               max10 = ifelse(rep(is.null(rYPermMa[[2]]),180),NA,rYPermMa[[2]]), 
-               min10 = ifelse(rep(is.null(rYPermMi[[2]]),180),NA,rYPermMi[[2]]),
-               max12 = ifelse(rep(is.null(rYPermMa[[3]]),180),NA,rYPermMa[[3]]),
-               min12 = ifelse(rep(is.null(rYPermMi[[3]]),180),NA,rYPermMi[[3]]),
-               max15 = ifelse(rep(is.null(rYPermMa[[4]]),180),NA,rYPermMa[[4]]), 
-               min15 = ifelse(rep(is.null(rYPermMi[[4]]),180),NA,rYPermMi[[4]]),
-               max20 = ifelse(rep(is.null(rYPermMa[[5]]),180),NA,rYPermMa[[5]]), 
-               min20 = ifelse(rep(is.null(rYPermMi[[5]]),180),NA,rYPermMi[[5]]),
-               max30 = ifelse(rep(is.null(rYPermMa[[6]]),180),NA,rYPermMa[[6]]),
-               min30 = ifelse(rep(is.null(rYPermMi[[6]]),180),NA,rYPermMi[[6]]))
-  
+               Normal = quanor(kvant, pelnor(samlmu(rLDfY[[l]]$norm))),
+               max5 = ifelse(rep(is.null(rYPermMaN[[1]]),180),NA,rYPermMaN[[1]]), 
+               min5 = ifelse(rep(is.null(rYPermMiN[[1]]),180),NA,rYPermMiN[[1]]),
+               max10 = ifelse(rep(is.null(rYPermMaN[[2]]),180),NA,rYPermMaN[[2]]), 
+               min10 = ifelse(rep(is.null(rYPermMiN[[2]]),180),NA,rYPermMiN[[2]]),
+               max12 = ifelse(rep(is.null(rYPermMaN[[3]]),180),NA,rYPermMaN[[3]]),
+               min12 = ifelse(rep(is.null(rYPermMiN[[3]]),180),NA,rYPermMiN[[3]]),
+               max15 = ifelse(rep(is.null(rYPermMaN[[4]]),180),NA,rYPermMaN[[4]]), 
+               min15 = ifelse(rep(is.null(rYPermMiN[[4]]),180),NA,rYPermMiN[[4]]),
+               max20 = ifelse(rep(is.null(rYPermMaN[[5]]),180),NA,rYPermMaN[[5]]), 
+               min20 = ifelse(rep(is.null(rYPermMiN[[5]]),180),NA,rYPermMiN[[5]]),
+               max30 = ifelse(rep(is.null(rYPermMaN[[6]]),180),NA,rYPermMaN[[6]]),
+               min30 = ifelse(rep(is.null(rYPermMiN[[6]]),180),NA,rYPermMiN[[6]]))
   
   
 
 #   library(ggplot2)
-    plots[[l]] <- ggplot(ribbons[[l]], aes(x = redkv, y = GEV)) +
-                    geom_ribbon(aes(ymin = min5, ymax = max5),
-                                alpha = 0.8, fill = "#FDE0DD") +
-                    geom_ribbon(aes(ymin = min10, ymax = max10),
-                                alpha = 0.8, fill = "#FCC5C0") +
-                    geom_ribbon(aes(ymin = min12, ymax = max12),
-                                alpha = 0.8, fill = "#FA9FB5") +
-                    geom_ribbon(aes(ymin = min15, ymax = max15),
-                                alpha = 0.8, fill = "#F768A1") +
-                    geom_ribbon(aes(ymin = min20, ymax = max20),
-                                alpha = 0.8, fill = "#DD3497") +
-                    geom_ribbon(aes(ymin = min30, ymax = max30),
-                                alpha = 0.8, fill = "#AE017E") +
-    geom_line(aes(x = redkv, y = GEV), colour = "#7A0177", size = 1.2) +
-    geom_line(aes(x = redkv, y = LP3), colour = "#000000", size = 1.2) +
-    geom_point(data = points[[l]], aes(x = redkv, y = obs), colour = "#FFF7F3") +
-    scale_x_continuous(breaks = -log(-log(c(.5, .8, .9, .95, .98, .99, .995))),
-                        labels = c(2, 5, 10, 20, 50, 100, 200), 
-                       limits=c(-log(-log(.1)),-log(-log(.9951)))) +
-    xlab("återkomsttid") + 
-    ylab("återkomstnivå") +
-    theme_bw() +
-    scale_fill_manual(values=c("#FDE0DD","#FCC5C0", "#FA9FB5", "#F768A1","DD3497","AE017E"), 
-                      name="Mättid",
-                      breaks=c("ymin5","ymin10", "ymin12", "ymin15", "ymin20", "ymin30"),
-                      labels=c("5 år","10 år", "12 år", "15 år", "20 år", "30 år")) 
- 
-
+#     plots[[l]] <- ggplot(ribbonsN[[l]], aes(x = redkv, y = Normal)) +
+#                     geom_ribbon(aes(ymin = min5, ymax = max5),
+#                                 alpha = 0.8, fill = "#FDE0DD") +
+#                     geom_ribbon(aes(ymin = min10, ymax = max10),
+#                                 alpha = 0.8, fill = "#FCC5C0") +
+#                     geom_ribbon(aes(ymin = min12, ymax = max12),
+#                                 alpha = 0.8, fill = "#FA9FB5") +
+#                     geom_ribbon(aes(ymin = min15, ymax = max15),
+#                                 alpha = 0.8, fill = "#F768A1") +
+#                     geom_ribbon(aes(ymin = min20, ymax = max20),
+#                                 alpha = 0.8, fill = "#DD3497") +
+#                     geom_ribbon(aes(ymin = min30, ymax = max30),
+#                                 alpha = 0.8, fill = "#AE017E") +
+#     geom_line(aes(x = redkv, y = Normal), colour = "#7A0177", size = 1.2) +
+# #     geom_line(aes(x = redkv, y = Normal), colour = "#000000", size = 1.2) +
+#     geom_point(data = pointsN[[l]], aes(x = redkv, y = obs), colour = "#FFF7F3") +
+#     scale_x_continuous(breaks = -log(-log(c(.5, .8, .9, .95, .98, .99, .995))),
+#                         labels = c(2, 5, 10, 20, 50, 100, 200), 
+#                        limits=c(-log(-log(.1)),-log(-log(.9951)))) +
+#     xlab("återkomsttid") + 
+#     ylab("återkomstnivå") +
+#     theme_bw() +
+#     scale_fill_manual(values=c("#FDE0DD","#FCC5C0", "#FA9FB5", "#F768A1","DD3497","AE017E"), 
+#                       name="Mättid",
+#                       breaks=c("ymin5","ymin10", "ymin12", "ymin15", "ymin20", "ymin30"),
+#                       labels=c("5 år","10 år", "12 år", "15 år", "20 år", "30 år")) 
+# #  
+# 
 
   
-  if(l != 1){
-    proc.time() - time[[1]]
-  }
-  time[[l]] <- proc.time()
+#   if(l != 1){
+#     proc.time() - time[[1]]
+#   }
+#   time[[l]] <- proc.time()
 }
 
 
+ribbonsGEV <- ribbons
 
-
+ribbons <- ribbonsN
 z = l
 kvRibb <- c(177,179,180)
 dfRibb_ <- vector("list",3)
