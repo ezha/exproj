@@ -90,15 +90,18 @@ for(l in 1:length(rLDfY)){
 Lmom <- rbind.fill(Lmom)
 
 
+
 # Normal parameters -----------------------------------------------------------
 mean <- sapply(parNor, "[[", "mu")
 sd <- sapply(parNor, "[[", "sigma")
-
+mlenorm <- lapply(rLDfY, function(x) fitdist(x$norm, distr='norm'))
 
 # GEV parameters --------------------------------------------------------------
 location <- sapply(parGEV, "[[", "xi")
 scale <- sapply(parGEV, "[[", "alpha")
 shape <- sapply(parGEV, "[[", "k")
+mlegev <- lapply(rLDfY, function(x) fitdist(x$norm, distr='gev', 
+                start=c()))
 
 # EV1 parameters --------------------------------------------------------------
 xi <- tryCatch(sapply(parEV1, "[[", "xi"), error=function(e) NULL)
@@ -115,7 +118,7 @@ mu <- tryCatch(sapply(parLP3, "[[", "mu"), error=function(e) NULL)
 sigma <- tryCatch(sapply(parLP3, "[[", "sigma"), error=function(e) NULL)
 gamma <- tryCatch(sapply(parLP3, "[[", "gamma"), error=function(e) NULL)
 
-# GOF tests -------------------------------------------------------------------
+# GOF tests Lmom --------------------------------------------------------------
 for(l in 1:length(rLDfY)){
   adNor[[l]] <- ad.test(rLDfY[[l]]$m_o_h, cdfnor, c(mean[l], sd[l]))
   ksNor[[l]] <- ks.test(x=rLDfY[[l]]$m_o_h, y=cdfnor, c(mean[l], sd[l]))
@@ -149,6 +152,46 @@ for(l in 1:length(rLDfY)){
   ksLP3[[l]] <- tryCatch(ks.test(x = log(rLDfY[[l]]$m_o_h), y = cdfpe3, 
                                  c(mu[[l]], sigma[[l]], gamma[[l]])),
                          error=function(e) e=1)
+}
+
+# GOF tests MLE ---------------------------------------------------------------
+for(l in 1:length(rLDfY)){
+  adNor[[l]] <- ad.test(rLDfY[[l]]$m_o_h, pnorm, 
+                        mlenorm[[l]]$estimate[[1]], 
+                        mlenorm[[l]]$estimate[[2]])
+  ksNor[[l]] <- ks.test(x=rLDfY[[l]]$m_o_h, y=pnorm, 
+                        mlenorm[[l]]$estimate[[1]], 
+                        mlenorm[[l]]$estimate[[2]])
+  
+  
+#   adGEV[[l]] <- ad.test(rLDfY[[l]]$m_o_h, cdfgev, 
+#                         c(location[l], scale[l], shape[l]))
+#   ksGEV[[l]] <- ks.test(x=rLDfY[[l]]$m_o_h, y=cdfgev, 
+#                         c(location[l], scale[l], shape[l]))
+#   
+#   
+#   adEV1[[l]] <- tryCatch(ad.test(rLDfY[[l]]$m_o_h, cdfgum, 
+#                                  c(xi[[l]], alpha[[l]])),
+#                          error=function(e) e=1)
+#   ksEV1[[l]] <- tryCatch(ks.test(rLDfY[[l]]$m_o_h, cdfgum, 
+#                                  c(xi[[l]], alpha[[l]])),
+#                          error=function(e) e=1)
+#   
+#   
+#   adWei[[l]] <- tryCatch(ad.test(rLDfY[[l]]$m_o_h, cdfwei, 
+#                                  c(zeta[[l]], beta[[l]], delta[[l]])),
+#                          error=function(e) e=1)
+#   ksWei[[l]] <- tryCatch(ks.test(x=rLDfY[[l]]$m_o_h, y=cdfwei, 
+#                                  c(zeta[[l]], beta[[l]], delta[[l]])),
+#                          error=function(e) e=1)
+#   
+#   
+#   adLP3[[l]] <- tryCatch(ad.test(log(rLDfY[[l]]$m_o_h), cdfpe3, 
+#                                  c(mu[[l]], sigma[[l]], gamma[[l]])),
+#                          error=function(e) e=1)
+#   ksLP3[[l]] <- tryCatch(ks.test(x = log(rLDfY[[l]]$m_o_h), y = cdfpe3, 
+#                                  c(mu[[l]], sigma[[l]], gamma[[l]])),
+#                          error=function(e) e=1)
 }
 
 
